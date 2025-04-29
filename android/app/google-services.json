@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "823531673768",
+    "project_id": "abogados-app-80dca",
+    "storage_bucket": "abogados-app-80dca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:823531673768:android:3d8f6a786b1291a18b8a9d",
+        "android_client_info": {
+          "package_name": "com.example.abogados"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAiLfeMWnwd6kT4p10FcvxI-P_6ZFHIUw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,30 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "abogados-app-80dca",
+          "appId": "1:823531673768:android:3d8f6a786b1291a18b8a9d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "abogados-app-80dca",
+          "configurations": {
+            "android": "1:823531673768:android:3d8f6a786b1291a18b8a9d",
+            "web": "1:823531673768:web:775a96b532a661648b8a9d"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

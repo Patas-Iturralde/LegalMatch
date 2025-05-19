@@ -1,6 +1,7 @@
 import 'package:abogados/screens/chat/all_chats_screen.dart';
 import 'package:abogados/screens/chat/available_chats_screen.dart';
 import 'package:abogados/screens/chat/live_chat_screen.dart';
+import 'package:abogados/screens/shared/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -105,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          drawer: AppDrawer(), 
           body: _screens[_currentIndex],
           floatingActionButton: FloatingActionButton(
             onPressed: () {
@@ -170,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? 'Mi Perfil Profesional'
             : 'Mi Perfil';
       default:
-        return 'Abogados App';
+        return 'LegalMatch';
     }
   }
 }

@@ -18,7 +18,7 @@ class LawyerService {
   Stream<List<Lawyer>> getLawyersBySpecialty(String specialty) {
     return _firestore
         .collection('lawyers')
-        .where('specialty', isEqualTo: specialty)
+        .where('specialties', arrayContains: specialty) // Modificado a arrayContains
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -32,8 +32,6 @@ class LawyerService {
     // Convertir la consulta a minúsculas para búsqueda insensible a mayúsculas
     String searchQuery = query.toLowerCase();
     
-    // Firebase no soporta directamente búsquedas insensibles a mayúsculas,
-    // así que obtenemos todos y filtramos
     return _firestore.collection('lawyers').snapshots().map((snapshot) {
       return snapshot.docs
           .map((doc) => Lawyer.fromMap(doc.data(), doc.id))

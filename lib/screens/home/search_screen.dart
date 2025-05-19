@@ -205,7 +205,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     SizedBox(height: 4.0),
                     Text(
-                      lawyer.specialty,
+                      lawyer.specialties.join(', '), // Mostrar todas las especialidades separadas por coma
                       style: TextStyle(
                         fontSize: 14.0,
                         color: Colors.grey[700],

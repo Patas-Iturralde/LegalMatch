@@ -27,7 +27,7 @@ class SplashScreen extends StatelessWidget {
             
             // Nombre de la aplicación
             Text(
-              'Abogados App',
+              'LegalMatch',
               style: TextStyle(
                 fontSize: 32.0,
                 fontWeight: FontWeight.bold,

@@ -7,6 +7,9 @@ import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/firebase_initializer.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 
 void main() async {
   // Inicializar Flutter widgets
@@ -15,8 +18,9 @@ void main() async {
   // Inicializar Firebase y datos de la aplicación
   await FirebaseInitializer.initialize();
   
-  // Ejecutar la aplicación
-  runApp(MyApp());
+  initializeDateFormatting('es_ES', null).then((_) {
+    runApp(MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -30,9 +34,21 @@ class MyApp extends StatelessWidget {
           initialData: null,
         ),
       ],
+      
       child: MaterialApp(
-        title: 'Abogados App',
+        title: 'LegalMatch',
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: [
+          const Locale('es', 'ES'), // Español
+          const Locale('en', 'US'), // Inglés (como respaldo)
+        ],
+        locale: const Locale('es', 'ES'), // Establece español como idioma predeterminado
+        
         theme: ThemeData(
           // Colores principales
           primarySwatch: Colors.teal,

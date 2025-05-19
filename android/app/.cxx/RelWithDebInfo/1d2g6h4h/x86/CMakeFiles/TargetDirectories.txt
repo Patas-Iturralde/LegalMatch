@@ -1,0 +1,2 @@
+/Users/hernaniturralde/Desarrollo/abogados/android/app/.cxx/RelWithDebInfo/1d2g6h4h/x86/CMakeFiles/edit_cache.dir
+/Users/hernaniturralde/Desarrollo/abogados/android/app/.cxx/RelWithDebInfo/1d2g6h4h/x86/CMakeFiles/rebuild_cache.dir

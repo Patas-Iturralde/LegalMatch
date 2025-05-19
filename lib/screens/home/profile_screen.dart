@@ -24,10 +24,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   
   // Controladores para los campos del formulario
   final _nameController = TextEditingController();
-  final _specialtyController = TextEditingController();
   final _priceController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _phoneController = TextEditingController(); // Nuevo controlador para teléfono
+  final _phoneController = TextEditingController();
+  
+  // Lista de especialidades seleccionadas
+  List<String> _selectedSpecialties = [];
   
   bool _isLoading = true;
   bool _isSaving = false;
@@ -47,10 +49,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _specialtyController.dispose();
     _priceController.dispose();
     _descriptionController.dispose();
-    _phoneController.dispose(); // Liberar el controlador de teléfono
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -67,10 +68,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             _lawyerData = lawyer;
             _nameController.text = lawyer.name;
-            _specialtyController.text = lawyer.specialty;
+            _selectedSpecialties = List<String>.from(lawyer.specialties); // Usar la lista de especialidades
             _priceController.text = lawyer.consultationPrice.toString();
             _descriptionController.text = lawyer.description;
-            _phoneController.text = lawyer.phone ?? ''; // Inicializar controlador de teléfono
+            _phoneController.text = lawyer.phone ?? '';
             _photoBase64 = lawyer.photoBase64;
           });
         }
@@ -136,14 +137,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final updatedLawyer = Lawyer(
           id: user.uid,
           name: _nameController.text.trim(),
-          specialty: _specialtyController.text.trim(),
+          specialties: _selectedSpecialties, // Usar la lista de especialidades seleccionadas
           photoBase64: _photoBase64 ?? '',
           consultationPrice: double.tryParse(_priceController.text) ?? 0.0,
           email: _lawyerData!.email,
           description: _descriptionController.text.trim(),
           rating: _lawyerData!.rating,
           reviewCount: _lawyerData!.reviewCount,
-          phone: _phoneController.text.trim(), // Guardar el teléfono
+          phone: _phoneController.text.trim(),
         );
         
         await _lawyerService.updateLawyerProfile(updatedLawyer);
@@ -289,43 +290,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (value == null || value.isEmpty) {
                 return 'Por favor ingresa un número de teléfono';
               }
-              // Validación simple: solo números
               if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
                 return 'Solo debe contener números, sin espacios ni caracteres especiales';
               }
               return null;
             },
           ),
+          SizedBox(height: 24.0),
+          
+          // Especialidades (selección múltiple)
+          Text(
+            'Especialidades',
+            style: TextStyle(
+              fontSize: 16.0,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8.0),
+          
+          // Widget para selección múltiple de especialidades
+          _buildSpecialtiesSelector(),
+          
           SizedBox(height: 16.0),
           
-          // Especialidad (dropdown)
-          DropdownButtonFormField<String>(
-            value: _specialtyController.text.isNotEmpty ? _specialtyController.text : null,
-            decoration: InputDecoration(
-              labelText: 'Especialidad',
-              prefixIcon: Icon(Icons.work),
+          // Validator para especialidades
+          if (_selectedSpecialties.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Text(
+                'Selecciona al menos una especialidad',
+                style: TextStyle(
+                  color: Colors.red[700],
+                  fontSize: 12.0,
+                ),
+              ),
             ),
-            items: _availableSpecialties.map((specialty) {
-              return DropdownMenuItem<String>(
-                value: specialty,
-                child: Text(specialty),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _specialtyController.text = value;
-                });
-              }
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Por favor selecciona una especialidad';
-              }
-              return null;
-            },
-          ),
-          SizedBox(height: 16.0),
           
           // Precio de consulta
           TextFormField(
@@ -367,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           
           // Botón guardar
           ElevatedButton(
-            onPressed: _isSaving ? null : _saveProfile,
+            onPressed: (_isSaving || _selectedSpecialties.isEmpty) ? null : _saveProfile,
             child: _isSaving
                 ? SizedBox(
                     height: 20.0,
@@ -387,8 +386,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Widget para selección múltiple de especialidades
+  Widget _buildSpecialtiesSelector() {
+    return Container(
+      padding: EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(4.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: _availableSpecialties.map((specialty) {
+              final isSelected = _selectedSpecialties.contains(specialty);
+              return FilterChip(
+                label: Text(specialty),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      if (!_selectedSpecialties.contains(specialty)) {
+                        _selectedSpecialties.add(specialty);
+                      }
+                    } else {
+                      _selectedSpecialties.remove(specialty);
+                    }
+                  });
+                },
+                backgroundColor: Colors.grey[200],
+                selectedColor: Theme.of(context).primaryColor.withOpacity(0.3),
+                checkmarkColor: Theme.of(context).primaryColor,
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildClientProfile(User user) {
-    // [El código de la función _buildClientProfile permanece igual]
+    // El código para el perfil del cliente se mantiene igual
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

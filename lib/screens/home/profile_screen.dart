@@ -1,3 +1,4 @@
+import 'package:abogados/utils/web_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -97,30 +98,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final ImagePicker _picker = ImagePicker();
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 600,
-        maxHeight: 600,
-        imageQuality: 80,
-      );
-      
-      if (image != null) {
-        final bytes = await File(image.path).readAsBytes();
-        final base64Image = base64Encode(bytes);
-        
-        setState(() {
-          _photoBase64 = base64Image;
-        });
-      }
-    } catch (e) {
-      print('Error al seleccionar imagen: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al seleccionar imagen')),
-      );
+  try {
+    // Usar la clase WebImagePicker que maneja ambas plataformas
+    final base64Image = await WebImagePicker.pickImage();
+    
+    if (base64Image != null) {
+      setState(() {
+        _photoBase64 = base64Image;
+      });
     }
+  } catch (e) {
+    print('Error al seleccionar imagen: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error al seleccionar imagen')),
+    );
   }
+}
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) {

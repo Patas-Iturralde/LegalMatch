@@ -2,11 +2,14 @@ import 'package:abogados/services/auth_service.dart';
 import 'package:abogados/services/lawyer_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/internship.dart';
 import '../../services/internship_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class InternshipScreen extends StatefulWidget {
   final bool isLawyer;
@@ -18,6 +21,7 @@ class InternshipScreen extends StatefulWidget {
 }
 
 class _InternshipScreenState extends State<InternshipScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance; 
   final InternshipService _internshipService = InternshipService();
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
@@ -30,6 +34,8 @@ class _InternshipScreenState extends State<InternshipScreen> {
   bool _isSubmitting = false;
   bool _showForm = false;
 
+  List<Internship> _internships = [];
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -37,6 +43,112 @@ class _InternshipScreenState extends State<InternshipScreen> {
     _requirementsController.dispose();
     super.dispose();
   }
+  void _loadInternships() {
+    _internshipService.getActiveInternships().listen((internships) {
+      setState(() {
+        _internships = internships;
+      });
+    });
+  }
+
+  Future<void> _applyForInternship(Internship internship) async {
+  try {
+    final user = Provider.of<User?>(context, listen: false);
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Debes iniciar sesión para aplicar a esta vacante')),
+      );
+      return;
+    }
+
+    // Mostrar diálogo de confirmación
+    bool confirm = await _showApplyConfirmationDialog(internship.title);
+    if (!confirm) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Obtener información del perfil del usuario desde Firestore
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    String userName = 'Usuario';
+    String userEmail = user.email ?? '';
+    
+    // Si el documento del usuario existe, obtener el nombre
+    if (userDoc.exists) {
+      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+      userName = userData['name'] ?? user.displayName ?? 'Usuario';
+    } else {
+      userName = user.displayName ?? 'Usuario';
+    }
+
+    // Verificar que tenemos email
+    if (userEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo obtener tu email. Por favor, actualiza tu perfil.')),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Aplicar a la vacante
+    await _internshipService.applyForInternship(
+      internshipId: internship.id,
+      clientId: user.uid,
+      clientName: userName, // Usar el nombre correcto
+      clientEmail: userEmail,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Has aplicado exitosamente a esta vacante')),
+    );
+  } catch (e) {
+    print('Error al aplicar a la vacante: $e');
+    
+    if (e.toString().contains('Ya has aplicado')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ya has aplicado a esta vacante anteriormente')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al aplicar a la vacante: $e')),
+      );
+    }
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
+// Método auxiliar para mostrar diálogo de confirmación
+Future<bool> _showApplyConfirmationDialog(String vacancyTitle) async {
+  return await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text('Confirmar aplicación'),
+        content: Text('¿Estás seguro de que quieres aplicar a la vacante "$vacancyTitle"? El abogado podrá ver tu nombre y correo electrónico.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Aplicar'),
+          ),
+        ],
+      );
+    },
+  ) ?? false; // Si el diálogo se cierra sin seleccionar, devuelve false
+}
 
   Future<void> _submitInternship() async {
     if (!_formKey.currentState!.validate()) {
@@ -102,28 +214,33 @@ class _InternshipScreenState extends State<InternshipScreen> {
     }
   }
 
-  Future<void> _applyForInternship(Internship internship) async {
-    try {
-      final user = Provider.of<User?>(context, listen: false);
-      if (user != null) {
-        await _internshipService.applyForInternship(
-          internshipId: internship.id,
-          clientId: user.uid,
-          clientName: user.displayName ?? 'Cliente',
-          clientEmail: user.email ?? '',
-        );
+  Future<void> applyForInternship({
+  required String internshipId,
+  required String clientId,
+  required String clientName,
+  required String clientEmail,
+}) async {
+  // Verificar si ya ha aplicado
+  QuerySnapshot existingApplications = await _firestore
+      .collection('internship_applications')
+      .where('internshipId', isEqualTo: internshipId)
+      .where('clientId', isEqualTo: clientId)
+      .get();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Solicitud enviada con éxito')),
-        );
-      }
-    } catch (e) {
-      print('Error al enviar solicitud: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al enviar solicitud')),
-      );
-    }
+  if (existingApplications.docs.isNotEmpty) {
+    throw Exception('Ya has aplicado a esta vacante');
   }
+
+  // Crear nueva aplicación
+  await _firestore.collection('internship_applications').add({
+    'internshipId': internshipId,
+    'clientId': clientId,
+    'clientName': clientName,
+    'clientEmail': clientEmail,
+    'appliedAt': Timestamp.now(),
+    'status': 'pending',
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -401,70 +518,184 @@ class _InternshipScreenState extends State<InternshipScreen> {
     );
   }
 
-  Future<void> _showApplicantsDialog(
-      BuildContext context, Internship internship) async {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Aplicantes para ${internship.title}'),
-          content: Container(
-            width: double.maxFinite,
-            child: StreamBuilder<List<InternshipApplication>>(
-              stream:
-                  _internshipService.getInternshipApplications(internship.id),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                }
+  Future<void> _showApplicantsDialog(BuildContext context, Internship internship) async {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text('Aplicantes para ${internship.title}'),
+        content: Container(
+          width: double.maxFinite,
+          child: StreamBuilder<List<InternshipApplication>>(
+            stream: _internshipService.getInternshipApplications(internship.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              }
 
-                if (snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
-                }
+              if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              }
 
-                final applications = snapshot.data ?? [];
+              final applications = snapshot.data ?? [];
 
-                if (applications.isEmpty) {
-                  return Text('Aún no hay aplicantes para esta vacante.');
-                }
+              if (applications.isEmpty) {
+                return Text('Aún no hay aplicantes para esta vacante.');
+              }
 
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: applications.length,
-                  itemBuilder: (context, index) {
-                    final application = applications[index];
-                    return ListTile(
-                      leading: Icon(Icons.person),
-                      title: Text(application.clientName),
-                      subtitle: Text(application.clientEmail),
-                      trailing: IconButton(
-                        icon: Icon(Icons.email),
-                        onPressed: () {
-                          // Aquí se podría implementar la funcionalidad para contactar al aplicante
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(
-                                    'Contactando a ${application.clientName}...')),
-                          );
-                        },
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: applications.length,
+                itemBuilder: (context, index) {
+                  final application = applications[index];
+                  return Card(
+                    margin: EdgeInsets.only(bottom: 8.0),
+                    child: Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Información del aplicante
+                          Row(
+                            children: [
+                              Icon(Icons.person, color: Theme.of(context).primaryColor),
+                              SizedBox(width: 8.0),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      application.clientName,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16.0,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.0),
+                                    Text(
+                                      application.clientEmail,
+                                      style: TextStyle(
+                                        color: Colors.grey[700],
+                                        fontSize: 14.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 12.0),
+                          
+                          // Fecha de aplicación
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_today, size: 16.0, color: Colors.grey[600]),
+                              SizedBox(width: 8.0),
+                              Text(
+                                'Aplicó el ${DateFormat('dd/MM/yyyy, HH:mm').format(application.appliedAt)}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 12.0),
+                          
+                          // Botones de acción
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              // Botón para enviar correo
+                              ElevatedButton.icon(
+                                icon: Icon(Icons.email, size: 16.0),
+                                label: Text('Contactar'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () => _contactApplicant(application),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                );
-              },
-            ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cerrar'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cerrar'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _contactApplicant(InternshipApplication application) async {
+  final Uri emailLaunchUri = Uri(
+    scheme: 'mailto',
+    path: application.clientEmail,
+    queryParameters: {
+      'subject': 'Respuesta a tu aplicación para "${_getInternshipTitle(application.internshipId)}"',
+      'body': 'Hola ${application.clientName},\n\nGracias por tu interés en la posición de pasante en nuestra firma. Estamos revisando tu aplicación y nos gustaría...\n\nSaludos cordiales,\n[Tu nombre]'
+    },
+  );
+  
+  try {
+    final canLaunch = await canLaunchUrl(emailLaunchUri);
+    if (canLaunch) {
+      await launchUrl(emailLaunchUri);
+    } else {
+      // Si no se puede abrir la aplicación de correo, mostrar el correo para copiar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo abrir la aplicación de correo. Correo del aplicante: ${application.clientEmail}'),
+          action: SnackBarAction(
+            label: 'Copiar',
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: application.clientEmail));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Correo copiado al portapapeles')),
+              );
+            },
+          ),
+          duration: Duration(seconds: 10),
+        ),
+      );
+    }
+  } catch (e) {
+    print('Error al intentar enviar correo: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error al intentar contactar: $e')),
     );
   }
+}
+
+// Método auxiliar para obtener el título de la vacante
+String _getInternshipTitle(String internshipId) {
+  final internship = _internships.firstWhere(
+    (i) => i.id == internshipId,
+    orElse: () => Internship(
+      id: '',
+      lawyerId: '',
+      lawyerName: '',
+      title: 'Vacante',
+      description: '',
+      requirements: '',
+      createdAt: DateTime.now(),
+      isActive: true,
+    ),
+  );
+  
+  return internship.title;
+}
 
   Future<void> _showDeleteConfirmationDialog(
       BuildContext context, String internshipId) async {

@@ -172,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? 'Mi Perfil Profesional'
             : 'Mi Perfil';
       default:
-        return 'LurisMatch';
+        return 'IurisMatch';
     }
   }
 }

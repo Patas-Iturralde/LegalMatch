@@ -27,7 +27,7 @@ class SplashScreen extends StatelessWidget {
             
             // Nombre de la aplicación
             Text(
-              'LurisMatch',
+              'IurisMatch',
               style: TextStyle(
                 fontSize: 32.0,
                 fontWeight: FontWeight.bold,

@@ -107,6 +107,11 @@ class ResolutionMessage {
   final String? attachmentUrl;
   final String? attachmentName;
   final MessageType messageType;
+  // NUEVOS CAMPOS PARA RASTREAR ESTADO DE PROPUESTAS
+  final String? proposalStatus; // 'pending', 'accepted', 'rejected'
+  final String? respondedBy; // ID del usuario que respondió
+  final DateTime? respondedAt; // Cuándo fue respondida
+  
 
   ResolutionMessage({
     required this.id,
@@ -120,6 +125,9 @@ class ResolutionMessage {
     this.attachmentUrl,
     this.attachmentName,
     this.messageType = MessageType.text,
+    this.proposalStatus, // NUEVO
+    this.respondedBy, // NUEVO
+    this.respondedAt, // NUEVO
   });
 
   factory ResolutionMessage.fromMap(Map<String, dynamic> data, String id) {
@@ -138,6 +146,11 @@ class ResolutionMessage {
         (e) => e.toString().split('.').last == (data['messageType'] ?? 'text'),
         orElse: () => MessageType.text,
       ),
+      proposalStatus: data['proposalStatus'], // NUEVO
+      respondedBy: data['respondedBy'], // NUEVO
+      respondedAt: data['respondedAt'] != null 
+          ? (data['respondedAt'] as Timestamp).toDate() 
+          : null, // NUEVO
     );
   }
 
@@ -153,6 +166,9 @@ class ResolutionMessage {
       'attachmentUrl': attachmentUrl,
       'attachmentName': attachmentName,
       'messageType': messageType.toString().split('.').last,
+      'proposalStatus': proposalStatus, // NUEVO
+      'respondedBy': respondedBy, // NUEVO
+      'respondedAt': respondedAt != null ? Timestamp.fromDate(respondedAt!) : null, // NUEVO
     };
   }
 }

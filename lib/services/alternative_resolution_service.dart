@@ -4,7 +4,22 @@ import '../models/alternative_resolution.dart';
 class AlternativeResolutionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Crear un nuevo caso de resolución alternativa
+  // MÉTODO AUXILIAR PARA OBTENER NOMBRE DE USUARIO
+  Future<String> _getUserName(String userId) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        return userData['name'] ?? 'Usuario';
+      }
+      return 'Usuario';
+    } catch (e) {
+      print('Error al obtener nombre de usuario: $e');
+      return 'Usuario';
+    }
+  }
+
+  // Crear un nuevo caso de resolución alternativa - CORREGIDO
   Future<String> createResolutionCase({
     required String clientId,
     required String clientName,
@@ -28,11 +43,24 @@ class AlternativeResolutionService {
     final lawyerDoc = lawyerQuery.docs.first;
     final lawyerData = lawyerDoc.data();
 
-    // Crear el caso
+    // OBTENER EL NOMBRE REAL DEL CLIENTE DESDE LA BASE DE DATOS
+    String realClientName = clientName;
+    try {
+      final userDoc = await _firestore.collection('users').doc(clientId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        realClientName = userData['name'] ?? clientName;
+      }
+    } catch (e) {
+      print('Error al obtener nombre del cliente: $e');
+      // Usar el nombre proporcionado como fallback
+    }
+
+    // Crear el caso con el nombre real del cliente
     final resolutionCase = AlternativeResolutionCase(
       id: '',
       clientId: clientId,
-      clientName: clientName,
+      clientName: realClientName, // USAR EL NOMBRE REAL
       lawyerId: lawyerDoc.id,
       lawyerName: lawyerData['name'] ?? '',
       type: type,
@@ -48,10 +76,10 @@ class AlternativeResolutionService {
         .collection('alternative_resolution_cases')
         .add(resolutionCase.toMap());
 
-    // Enviar mensaje inicial del sistema
+    // Enviar mensaje inicial del sistema con nombres reales
     await _sendSystemMessage(
       caseId: docRef.id,
-      message: '${resolutionCase.typeDisplayName} iniciada entre $clientName y ${lawyerData['name']}. ${resolutionCase.typeDescription}',
+      message: '${resolutionCase.typeDisplayName} iniciada entre $realClientName y ${lawyerData['name']}. ${resolutionCase.typeDescription}',
     );
 
     // Mensaje específico según el tipo
@@ -115,7 +143,7 @@ class AlternativeResolutionService {
     });
   }
 
-  // Enviar un mensaje
+  // Enviar un mensaje - MEJORADO PARA OBTENER NOMBRES REALES
   Future<void> sendMessage({
     required String caseId,
     required String senderId,
@@ -126,11 +154,17 @@ class AlternativeResolutionService {
     String? attachmentUrl,
     String? attachmentName,
   }) async {
+    // VERIFICAR Y OBTENER EL NOMBRE REAL SI ES NECESARIO
+    String realSenderName = senderName;
+    if (senderName == 'Usuario' || senderName.isEmpty) {
+      realSenderName = await _getUserName(senderId);
+    }
+
     final messageData = ResolutionMessage(
       id: '',
       caseId: caseId,
       senderId: senderId,
-      senderName: senderName,
+      senderName: realSenderName, // USAR NOMBRE REAL
       senderType: senderType,
       message: message,
       timestamp: DateTime.now(),
@@ -167,31 +201,66 @@ class AlternativeResolutionService {
     });
   }
 
-  // Hacer una propuesta (para mediación)
+  // Hacer una propuesta (para mediación) - MEJORADO
   Future<void> makeProposal({
-    required String caseId,
-    required String senderId,
-    required String senderName,
-    required String senderType,
-    required String proposal,
-    double? amount,
-  }) async {
-    await sendMessage(
-      caseId: caseId,
-      senderId: senderId,
-      senderName: senderName,
-      senderType: senderType,
-      message: proposal,
-      messageType: MessageType.proposal,
-    );
-
-    await _sendSystemMessage(
-      caseId: caseId,
-      message: '$senderName ha hecho una propuesta de acuerdo. ${amount != null ? "Monto propuesto: \$${amount.toStringAsFixed(2)}" : ""}',
-    );
+  required String caseId,
+  required String senderId,
+  required String senderName,
+  required String senderType,
+  required String proposal,
+  double? amount,
+}) async {
+  // Obtener nombre real si es necesario
+  String realSenderName = senderName;
+  if (senderName == 'Usuario' || senderName.isEmpty) {
+    realSenderName = await _getUserName(senderId);
   }
 
-  // Tomar decisión de arbitraje
+  // Crear mensaje de propuesta con estado 'pending'
+  final messageData = ResolutionMessage(
+    id: '',
+    caseId: caseId,
+    senderId: senderId,
+    senderName: realSenderName,
+    senderType: senderType,
+    message: proposal,
+    timestamp: DateTime.now(),
+    messageType: MessageType.proposal,
+    proposalStatus: 'pending', // NUEVO - Estado inicial
+  );
+
+  await _firestore
+      .collection('alternative_resolution_cases')
+      .doc(caseId)
+      .collection('messages')
+      .add(messageData.toMap());
+
+  await _sendSystemMessage(
+    caseId: caseId,
+    message: '$realSenderName ha hecho una propuesta de acuerdo. ${amount != null ? "Monto propuesto: \$${amount.toStringAsFixed(2)}" : ""}',
+  );
+}
+
+// NUEVO MÉTODO para marcar propuesta como respondida
+Future<void> _markProposalAsResponded({
+  required String caseId,
+  required String messageId,
+  required String status, // 'accepted' o 'rejected'
+  required String respondedBy,
+}) async {
+  await _firestore
+      .collection('alternative_resolution_cases')
+      .doc(caseId)
+      .collection('messages')
+      .doc(messageId)
+      .update({
+    'proposalStatus': status,
+    'respondedBy': respondedBy,
+    'respondedAt': Timestamp.now(),
+  });
+}
+
+  // Tomar decisión de arbitraje - MEJORADO
   Future<void> makeArbitrationDecision({
     required String caseId,
     required String arbitratorId,
@@ -200,11 +269,17 @@ class AlternativeResolutionService {
     double? awardAmount,
     Map<String, dynamic>? terms,
   }) async {
+    // OBTENER NOMBRE REAL DEL ÁRBITRO
+    String realArbitratorName = arbitratorName;
+    if (arbitratorName == 'Usuario' || arbitratorName.isEmpty) {
+      realArbitratorName = await _getUserName(arbitratorId);
+    }
+
     // Enviar mensaje de decisión
     await sendMessage(
       caseId: caseId,
       senderId: arbitratorId,
-      senderName: arbitratorName,
+      senderName: realArbitratorName,
       senderType: 'lawyer',
       message: decision,
       messageType: MessageType.decision,
@@ -233,71 +308,105 @@ class AlternativeResolutionService {
 
     await _sendSystemMessage(
       caseId: caseId,
-      message: 'Decisión de arbitraje emitida. Esta decisión es vinculante para ambas partes.',
+      message: 'Decisión de arbitraje emitida por $realArbitratorName. Esta decisión es vinculante para ambas partes.',
     );
   }
 
-  // Aceptar propuesta (para mediación)
+  // Aceptar propuesta (para mediación) - MEJORADO
   Future<void> acceptProposal({
-    required String caseId,
-    required String acceptorId,
-    required String acceptorName,
-    required String proposalContent,
-  }) async {
-    await sendMessage(
+  required String caseId,
+  required String acceptorId,
+  required String acceptorName,
+  required String proposalContent,
+  String? originalMessageId, // NUEVO parámetro
+}) async {
+  // Obtener nombre real si es necesario
+  String realAcceptorName = acceptorName;
+  if (acceptorName == 'Usuario' || acceptorName.isEmpty) {
+    realAcceptorName = await _getUserName(acceptorId);
+  }
+
+  await sendMessage(
+    caseId: caseId,
+    senderId: acceptorId,
+    senderName: realAcceptorName,
+    senderType: acceptorId.contains('lawyer') ? 'lawyer' : 'client',
+    message: 'He aceptado la propuesta: $proposalContent',
+  );
+
+  // MARCAR LA PROPUESTA ORIGINAL COMO ACEPTADA
+  if (originalMessageId != null) {
+    await _markProposalAsResponded(
       caseId: caseId,
-      senderId: acceptorId,
-      senderName: acceptorName,
-      senderType: acceptorId.contains('lawyer') ? 'lawyer' : 'client',
-      message: 'He aceptado la propuesta: $proposalContent',
-    );
-
-    // Crear acuerdo
-    await _firestore.collection('resolutions').add({
-      'caseId': caseId,
-      'type': 'agreement',
-      'content': proposalContent,
-      'dateIssued': Timestamp.now(),
-      'isBinding': false,
-      'terms': {'acceptedBy': acceptorId, 'acceptedAt': Timestamp.now()},
-    });
-
-    // Actualizar estado del caso
-    await _firestore
-        .collection('alternative_resolution_cases')
-        .doc(caseId)
-        .update({
-      'status': 'resolved',
-      'resolvedAt': Timestamp.now(),
-      'resolution': proposalContent,
-    });
-
-    await _sendSystemMessage(
-      caseId: caseId,
-      message: '🎉 ¡Acuerdo alcanzado! La propuesta ha sido aceptada por ambas partes.',
+      messageId: originalMessageId,
+      status: 'accepted',
+      respondedBy: acceptorId,
     );
   }
 
-  // Rechazar propuesta
+  // Crear acuerdo
+  await _firestore.collection('resolutions').add({
+    'caseId': caseId,
+    'type': 'agreement',
+    'content': proposalContent,
+    'dateIssued': Timestamp.now(),
+    'isBinding': false,
+    'terms': {'acceptedBy': acceptorId, 'acceptedAt': Timestamp.now()},
+  });
+
+  // Actualizar estado del caso
+  await _firestore
+      .collection('alternative_resolution_cases')
+      .doc(caseId)
+      .update({
+    'status': 'resolved',
+    'resolvedAt': Timestamp.now(),
+    'resolution': proposalContent,
+  });
+
+  await _sendSystemMessage(
+    caseId: caseId,
+    message: '🎉 ¡Acuerdo alcanzado! La propuesta ha sido aceptada por $realAcceptorName.',
+  );
+}
+
+  // Rechazar propuesta - MEJORADO
   Future<void> rejectProposal({
-    required String caseId,
-    required String rejectorId,
-    required String rejectorName,
-    required String reason,
-  }) async {
-    await sendMessage(
-      caseId: caseId,
-      senderId: rejectorId,
-      senderName: rejectorName,
-      senderType: rejectorId.contains('lawyer') ? 'lawyer' : 'client',
-      message: 'He rechazado la propuesta. Razón: $reason',
-    );
+  required String caseId,
+  required String rejectorId,
+  required String rejectorName,
+  required String reason,
+  String? originalMessageId, // NUEVO parámetro
+}) async {
+  // Obtener nombre real si es necesario
+  String realRejectorName = rejectorName;
+  if (rejectorName == 'Usuario' || rejectorName.isEmpty) {
+    realRejectorName = await _getUserName(rejectorId);
+  }
 
-    await _sendSystemMessage(
+  await sendMessage(
+    caseId: caseId,
+    senderId: rejectorId,
+    senderName: realRejectorName,
+    senderType: rejectorId.contains('lawyer') ? 'lawyer' : 'client',
+    message: 'He rechazado la propuesta. Razón: $reason',
+  );
+
+  // MARCAR LA PROPUESTA ORIGINAL COMO RECHAZADA
+  if (originalMessageId != null) {
+    await _markProposalAsResponded(
       caseId: caseId,
-      message: 'La propuesta ha sido rechazada. Las partes pueden continuar negociando.',
+      messageId: originalMessageId,
+      status: 'rejected',
+      respondedBy: rejectorId,
     );
   }
+
+  await _sendSystemMessage(
+    caseId: caseId,
+    message: 'La propuesta ha sido rechazada por $realRejectorName. Las partes pueden continuar negociando.',
+  );
+}
 
   // Programar sesión
   Future<void> scheduleSession({

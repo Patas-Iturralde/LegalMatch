@@ -1,3 +1,4 @@
+import 'package:abogados/screens/resolution/alternative_resolution_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
@@ -155,17 +156,39 @@ class AppDrawer extends StatelessWidget {
 
             // NUEVAS SECCIONES
             
-            // Mediación
+            // Medios Alternativos de Resolución de Conflictos - NUEVO
             ListTile(
-              leading: Icon(Icons.handshake, color: Colors.blue),
-              title: Text('Mediación'),
-              subtitle: Text('Resolución de conflictos'),
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.balance, color: Colors.purple),
+              ),
+              title: Text('Medios Alternativos'),
+              subtitle: Text('Mediación y Arbitraje'),
+              trailing: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.purple,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'NUEVO',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => MediationScreen(isLawyer: isLawyer),
+                    builder: (context) => AlternativeResolutionScreen(isLawyer: isLawyer),
                   ),
                 );
               },

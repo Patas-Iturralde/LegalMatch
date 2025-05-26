@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   // Logo o título
                   Text(
-                    'LurisMatch',
+                    'IurisMatch',
                     style: TextStyle(
                       fontSize: 32.0,
                       fontWeight: FontWeight.bold,

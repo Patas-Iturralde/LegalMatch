@@ -5,6 +5,9 @@ import '../../services/auth_service.dart';
 import '../internships/internship_screen.dart';
 import '../appointments/lawyer_appointments_screen.dart';
 import '../appointments/client_appointments_screen.dart';
+import '../mediation/mediation_screen.dart';
+import '../virtual_classroom/virtual_classroom_screen.dart';
+import '../forum/forum_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final AuthService _authService = AuthService();
@@ -147,17 +150,58 @@ class AppDrawer extends StatelessWidget {
                 }
               },
             ),
+
+            Divider(),
+
+            // NUEVAS SECCIONES
             
-            // Perfil
-            // ListTile(
-            //   leading: Icon(Icons.person),
-            //   title: Text('Mi Perfil'),
-            //   onTap: () {
-            //     Navigator.pop(context);
-            //     // Navegar a la pantalla de perfil
-            //     // Navigator.pushNamed(context, '/profile');
-            //   },
-            // ),
+            // Mediación
+            ListTile(
+              leading: Icon(Icons.handshake, color: Colors.blue),
+              title: Text('Mediación'),
+              subtitle: Text('Resolución de conflictos'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MediationScreen(isLawyer: isLawyer),
+                  ),
+                );
+              },
+            ),
+            
+            // Aula Virtual
+            ListTile(
+              leading: Icon(Icons.menu_book, color: Colors.green),
+              title: Text('Aula Virtual'),
+              subtitle: Text('Recursos educativos'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VirtualClassroomScreen(isLawyer: isLawyer),
+                  ),
+                );
+              },
+            ),
+            
+            // Foro
+            ListTile(
+              leading: Icon(Icons.forum, color: Colors.orange),
+              title: Text('Foro'),
+              subtitle: Text('Discusiones y consultas'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ForumScreen(),
+                  ),
+                );
+              },
+            ),
           ],
         );
       },

@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
       ],
       
       child: MaterialApp(
-        title: 'LegalMatch',
+        title: 'LurisMatch',
         debugShowCheckedModeBanner: false,
         localizationsDelegates: [
           GlobalMaterialLocalizations.delegate,

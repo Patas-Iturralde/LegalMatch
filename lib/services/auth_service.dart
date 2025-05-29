@@ -69,6 +69,45 @@ class AuthService {
     }
   }
 
+  // 🆕 Recuperar contraseña - Enviar email de restablecimiento
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'user-not-found':
+          throw Exception('No existe una cuenta con este email.');
+        case 'invalid-email':
+          throw Exception('El formato del email es inválido.');
+        case 'too-many-requests':
+          throw Exception('Demasiadas solicitudes. Intenta más tarde.');
+        default:
+          throw Exception('Error al enviar email de recuperación: ${e.message}');
+      }
+    } catch (e) {
+      print('Error en recuperación de contraseña: $e');
+      throw Exception('Error inesperado al enviar email de recuperación.');
+    }
+  }
+
+  // 🆕 Verificar si existe un email en el sistema - Método actualizado
+  Future<bool> checkEmailExists(String email) async {
+    try {
+      // Verificar en la colección de usuarios de Firestore
+      final userQuery = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email.trim().toLowerCase())
+          .get();
+      
+      return userQuery.docs.isNotEmpty;
+    } catch (e) {
+      print('Error al verificar email: $e');
+      // Si hay error en Firestore, intentamos enviar el email directamente
+      // Firebase Auth se encargará de validar si existe
+      return true;
+    }
+  }
+
   // Obtener el tipo de usuario (cliente o abogado)
   Future<UserType> getUserType(String userId) async {
     try {

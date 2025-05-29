@@ -4,23 +4,21 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color.fromARGB(255, 15, 77, 62),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Logo o ícono de la aplicación
             Container(
-              width: 120.0,
-              height: 120.0,
+              width: 200,
+              height: 200,
               decoration: BoxDecoration(
                 color: Theme.of(context).primaryColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.gavel,
-                size: 64.0,
-                color: Colors.white,
+              child: Image.asset(
+                'assets/images/logo_sf.png', // Asegúrate de tener un logo en esta ruta
               ),
             ),
             SizedBox(height: 24.0),
@@ -38,7 +36,7 @@ class SplashScreen extends StatelessWidget {
             
             // Eslogan
             Text(
-              'Encuentra el mejor asesor legal',
+              'Tu abogado de confianza a',
               style: TextStyle(
                 fontSize: 16.0,
                 color: Colors.grey[600],

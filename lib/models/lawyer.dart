@@ -1,7 +1,7 @@
 class Lawyer {
   final String id;
   final String name;
-  final List<String> specialties; // Cambiado de String a List<String>
+  final List<String> specialties;
   final String photoBase64;
   final double consultationPrice;
   final String email;
@@ -9,14 +9,16 @@ class Lawyer {
   final double rating;
   final int reviewCount;
   final String? phone;
+  final String city; // Nuevo campo para la ciudad
 
   Lawyer({
     required this.id,
     required this.name,
-    required this.specialties, // Cambiado de specialty a specialties
+    required this.specialties,
     required this.photoBase64,
     required this.consultationPrice,
     required this.email,
+    required this.city, // Campo obligatorio
     this.description = '',
     this.rating = 0.0,
     this.reviewCount = 0,
@@ -28,7 +30,6 @@ class Lawyer {
     // Manejo de la conversión de specialty a specialties
     List<String> specialtiesList = [];
     if (data['specialties'] != null) {
-      // Si ya es una lista, usarla directamente
       specialtiesList = List<String>.from(data['specialties']);
     } else if (data['specialty'] != null) {
       // Retrocompatibilidad: convertir el campo anterior 'specialty' en una lista
@@ -42,6 +43,7 @@ class Lawyer {
       photoBase64: data['photoBase64'] ?? '',
       consultationPrice: (data['consultationPrice'] ?? 0.0).toDouble(),
       email: data['email'] ?? '',
+      city: data['city'] ?? 'Quito', // Valor por defecto si no existe
       description: data['description'] ?? '',
       rating: (data['rating'] ?? 0.0).toDouble(),
       reviewCount: data['reviewCount'] ?? 0,
@@ -53,10 +55,11 @@ class Lawyer {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'specialties': specialties, // Ahora guarda una lista
+      'specialties': specialties,
       'photoBase64': photoBase64,
       'consultationPrice': consultationPrice,
       'email': email,
+      'city': city, // Incluir la ciudad en el mapa
       'description': description,
       'rating': rating,
       'reviewCount': reviewCount,

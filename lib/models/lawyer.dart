@@ -30,24 +30,66 @@ class Lawyer {
     // Manejo de la conversión de specialty a specialties
     List<String> specialtiesList = [];
     if (data['specialties'] != null) {
-      specialtiesList = List<String>.from(data['specialties']);
+      try {
+        specialtiesList = List<String>.from(data['specialties']);
+      } catch (e) {
+        print('Error procesando especialidades para $id: $e');
+        specialtiesList = [];
+      }
     } else if (data['specialty'] != null) {
       // Retrocompatibilidad: convertir el campo anterior 'specialty' en una lista
-      specialtiesList = [data['specialty']];
+      specialtiesList = [data['specialty'].toString()];
+    }
+
+    // Validar y limpiar la ciudad
+    String city = 'Quito'; // Valor por defecto
+    if (data['city'] != null && data['city'] is String && data['city'].toString().trim().isNotEmpty) {
+      city = data['city'].toString().trim();
+    }
+
+    // Validar y convertir valores numéricos
+    double consultationPrice = 0.0;
+    if (data['consultationPrice'] != null) {
+      try {
+        consultationPrice = (data['consultationPrice'] as num).toDouble();
+      } catch (e) {
+        print('Error procesando precio para $id: $e');
+        consultationPrice = 0.0;
+      }
+    }
+
+    double rating = 0.0;
+    if (data['rating'] != null) {
+      try {
+        rating = (data['rating'] as num).toDouble();
+      } catch (e) {
+        print('Error procesando rating para $id: $e');
+        rating = 0.0;
+      }
+    }
+
+    int reviewCount = 0;
+    if (data['reviewCount'] != null) {
+      try {
+        reviewCount = (data['reviewCount'] as num).toInt();
+      } catch (e) {
+        print('Error procesando reviewCount para $id: $e');
+        reviewCount = 0;
+      }
     }
 
     return Lawyer(
       id: id,
-      name: data['name'] ?? '',
+      name: data['name']?.toString() ?? '',
       specialties: specialtiesList,
-      photoBase64: data['photoBase64'] ?? '',
-      consultationPrice: (data['consultationPrice'] ?? 0.0).toDouble(),
-      email: data['email'] ?? '',
-      city: data['city'] ?? 'Quito', // Valor por defecto si no existe
-      description: data['description'] ?? '',
-      rating: (data['rating'] ?? 0.0).toDouble(),
-      reviewCount: data['reviewCount'] ?? 0,
-      phone: data['phone'],
+      photoBase64: data['photoBase64']?.toString() ?? '',
+      consultationPrice: consultationPrice,
+      email: data['email']?.toString() ?? '',
+      city: city,
+      description: data['description']?.toString() ?? '',
+      rating: rating,
+      reviewCount: reviewCount,
+      phone: data['phone']?.toString(),
     );
   }
 

@@ -75,46 +75,82 @@ class LawyerService {
     double? maxPrice,
     double? minRating,
   }) async {
-    Query query = _firestore.collection('lawyers');
+    try {
+      // Obtener todos los abogados primero
+      final querySnapshot = await _firestore.collection('lawyers').get();
+      List<Lawyer> lawyers = [];
 
-    // Aplicar filtros según los parámetros proporcionados
-    if (specialty != null && specialty.isNotEmpty) {
-      query = query.where('specialties', arrayContains: specialty);
+      for (var doc in querySnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          
+          // Validar que tenga los campos básicos antes de crear el objeto
+          if (data['name'] != null && data['email'] != null) {
+            final lawyer = Lawyer.fromMap(data, doc.id);
+            lawyers.add(lawyer);
+          }
+        } catch (e) {
+          print('Error procesando abogado ${doc.id}: $e');
+          continue; // Saltar este documento y continuar con el siguiente
+        }
+      }
+
+      // Aplicar filtros en memoria
+      List<Lawyer> filteredLawyers = lawyers.where((lawyer) {
+        // Filtro por nombre
+        if (name != null && name.isNotEmpty) {
+          String searchName = name.toLowerCase();
+          if (!lawyer.name.toLowerCase().contains(searchName)) {
+            return false;
+          }
+        }
+
+        // Filtro por especialidad
+        if (specialty != null && specialty.isNotEmpty) {
+          if (!lawyer.specialties.contains(specialty)) {
+            return false;
+          }
+        }
+
+        // Filtro por ciudad
+        if (city != null && city.isNotEmpty) {
+          if (lawyer.city != city) {
+            return false;
+          }
+        }
+
+        // Filtro por precio mínimo
+        if (minPrice != null) {
+          if (lawyer.consultationPrice < minPrice) {
+            return false;
+          }
+        }
+
+        // Filtro por precio máximo
+        if (maxPrice != null) {
+          if (lawyer.consultationPrice > maxPrice) {
+            return false;
+          }
+        }
+
+        // Filtro por rating mínimo
+        if (minRating != null) {
+          if (lawyer.rating < minRating) {
+            return false;
+          }
+        }
+
+        return true;
+      }).toList();
+
+      // Ordenar por rating descendente
+      filteredLawyers.sort((a, b) => b.rating.compareTo(a.rating));
+
+      return filteredLawyers;
+    } catch (e) {
+      print('Error en búsqueda avanzada: $e');
+      return [];
     }
-
-    if (city != null && city.isNotEmpty) {
-      query = query.where('city', isEqualTo: city);
-    }
-
-    if (minPrice != null) {
-      query = query.where('consultationPrice', isGreaterThanOrEqualTo: minPrice);
-    }
-
-    if (maxPrice != null) {
-      query = query.where('consultationPrice', isLessThanOrEqualTo: maxPrice);
-    }
-
-    if (minRating != null) {
-      query = query.where('rating', isGreaterThanOrEqualTo: minRating);
-    }
-
-    final querySnapshot = await query.get();
-    List<Lawyer> lawyers = querySnapshot.docs
-        .map((doc) => Lawyer.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .toList();
-
-    // Filtrar por nombre si se proporciona (Firebase no soporta búsqueda parcial)
-    if (name != null && name.isNotEmpty) {
-      String searchName = name.toLowerCase();
-      lawyers = lawyers
-          .where((lawyer) => lawyer.name.toLowerCase().contains(searchName))
-          .toList();
-    }
-
-    // Ordenar por rating descendente
-    lawyers.sort((a, b) => b.rating.compareTo(a.rating));
-
-    return lawyers;
   }
 
   // Obtener un abogado por ID
@@ -230,9 +266,12 @@ class LawyerService {
       Set<String> cities = {};
 
       for (var doc in snapshot.docs) {
-        String city = doc.data()['city'];
-        if (city.isNotEmpty) {
-          cities.add(city);
+        final data = doc.data() as Map<String, dynamic>;
+        final city = data['city'];
+        
+        // Verificar que city no sea null y no esté vacío
+        if (city != null && city is String && city.trim().isNotEmpty) {
+          cities.add(city.trim());
         }
       }
 
@@ -241,7 +280,19 @@ class LawyerService {
       return cityList;
     } catch (e) {
       print('Error al obtener ciudades disponibles: $e');
-      return [];
+      // Retornar ciudades principales como fallback
+      return [
+        'Quito',
+        'Guayaquil', 
+        'Cuenca',
+        'Ambato',
+        'Loja',
+        'Machala',
+        'Riobamba',
+        'Portoviejo',
+        'Ibarra',
+        'Santo Domingo'
+      ];
     }
   }
 }

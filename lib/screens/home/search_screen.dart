@@ -1,7 +1,9 @@
+import 'package:abogados/utils/migration_button_widget.dart';
 import 'package:flutter/material.dart';
 import '../../models/lawyer.dart';
 import '../../services/lawyer_service.dart';
 import '../../utils/ecuador_cities.dart';
+
 import 'lawyer_detail_screen.dart';
 import 'dart:convert';
 
@@ -208,6 +210,10 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       body: Column(
         children: [
+          // Mostrar botón de migración si no hay ciudades disponibles
+     
+            QuickMigrationButton(),
+          
           // Barra de búsqueda
           Container(
             padding: EdgeInsets.all(16.0),
@@ -291,25 +297,30 @@ class _SearchScreenState extends State<SearchScreen> {
                         child: DropdownButtonFormField<String>(
                           value: _selectedCity,
                           decoration: InputDecoration(
-                            labelText: 'Ciudad',
+                            labelText: _availableCities.isEmpty ? 'Sin ciudades (migrar)' : 'Ciudad',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
-                          items: [
-                            DropdownMenuItem<String>(
-                              value: null,
-                              child: Text('Todas'),
-                            ),
-                            ..._availableCities.map((city) {
-                              return DropdownMenuItem<String>(
-                                value: city,
-                                child: Text(city, overflow: TextOverflow.ellipsis),
-                              );
-                            }).toList(),
-                          ],
-                          onChanged: (value) {
+                          items: _availableCities.isEmpty 
+                              ? [DropdownMenuItem<String>(
+                                  value: null,
+                                  child: Text('Ejecutar migración primero'),
+                                )]
+                              : [
+                                  DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text('Todas'),
+                                  ),
+                                  ..._availableCities.map((city) {
+                                    return DropdownMenuItem<String>(
+                                      value: city,
+                                      child: Text(city, overflow: TextOverflow.ellipsis),
+                                    );
+                                  }).toList(),
+                                ],
+                          onChanged: _availableCities.isEmpty ? null : (value) {
                             setState(() {
                               _selectedCity = value;
                             });

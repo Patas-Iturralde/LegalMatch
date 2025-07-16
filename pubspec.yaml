@@ -44,6 +44,8 @@ dependencies:
   table_calendar: ^3.0.9
   flutter_localizations:
     sdk: flutter
+  google_generative_ai: ^0.4.7
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

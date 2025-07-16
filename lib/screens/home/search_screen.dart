@@ -212,7 +212,7 @@ class _SearchScreenState extends State<SearchScreen> {
         children: [
           // Mostrar botón de migración si no hay ciudades disponibles
      
-            QuickMigrationButton(),
+            // QuickMigrationButton(),
           
           // Barra de búsqueda
           Container(

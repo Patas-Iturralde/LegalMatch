@@ -9,6 +9,7 @@ import '../appointments/client_appointments_screen.dart';
 import '../mediation/mediation_screen.dart';
 import '../virtual_classroom/virtual_classroom_screen.dart';
 import '../forum/forum_screen.dart';
+import '../ai_assistant/ai_assistant_screen.dart'; // Nueva importación
 
 class AppDrawer extends StatelessWidget {
   final AuthService _authService = AuthService();
@@ -113,6 +114,46 @@ class AppDrawer extends StatelessWidget {
         return ListView(
           padding: EdgeInsets.zero,
           children: [
+            // NUEVA SECCIÓN: Asistente de IA Legal
+            ListTile(
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.cyan.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.smart_toy, color: Colors.cyan),
+              ),
+              title: Text('Asistente de IA Legal'),
+              subtitle: Text('Chat inteligente y clasificación'),
+              trailing: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.cyan,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'IA',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AIAssistantScreen(isLawyer: isLawyer),
+                  ),
+                );
+              },
+            ),
+
+            Divider(thickness: 1, color: Colors.grey.shade300),
+            
             // Sección de Vacantes (visible para todos)
             ListTile(
               leading: Icon(Icons.work),
@@ -154,9 +195,9 @@ class AppDrawer extends StatelessWidget {
 
             Divider(),
 
-            // NUEVAS SECCIONES
+            // OTRAS SECCIONES EXISTENTES
             
-            // Medios Alternativos de Resolución de Conflictos - NUEVO
+            // Medios Alternativos de Resolución de Conflictos
             ListTile(
               leading: Container(
                 padding: EdgeInsets.all(8),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/auth_service.dart';
+import '../../utils/ecuador_cities.dart';
+import '../../widgets/terms_conditions_widget.dart'; // Agregar nueva importación
 import '../home/home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -18,9 +20,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   String _errorMessage = '';
   UserType _selectedUserType = UserType.client;
-  bool _acceptTerms = false; // Nueva variable para términos y condiciones
+  bool _acceptTerms = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  
+  // Campos específicos para abogados
+  String _selectedCity = 'Quito'; // Ciudad por defecto
+  List<String> _allCities = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCities();
+  }
 
   @override
   void dispose() {
@@ -29,6 +41,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  // Cargar las ciudades del Ecuador
+  void _loadCities() {
+    _allCities = EcuadorCities.getAllCities();
   }
 
   Future<void> _register() async {
@@ -51,6 +68,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: _passwordController.text.trim(),
           name: _nameController.text.trim(),
           userType: _selectedUserType,
+          
         );
         
         // Navegar a la pantalla principal si el registro es exitoso
@@ -80,62 +98,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // Método para mostrar los términos y condiciones completos
-  void _showTermsAndConditions() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Container(
-            height: MediaQuery.of(context).size.height * 0.8,
-            width: MediaQuery.of(context).size.width * 0.9,
-            padding: EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Términos y Condiciones',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                Divider(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Text(
-                      _getTermsAndConditionsText(),
-                      style: TextStyle(fontSize: 14, height: 1.5),
-                      textAlign: TextAlign.justify,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    setState(() {
-                      _acceptTerms = true;
-                    });
-                  },
-                  child: Text('Aceptar y Cerrar'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 45),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  void _showTermsAndConditions() async {
+    bool? accepted = await TermsAndConditionsWidget.showTermsDialog(context);
+    if (accepted == true) {
+      setState(() {
+        _acceptTerms = true;
+      });
+    }
   }
 
   // Texto completo de términos y condiciones
@@ -143,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return '''TÉRMINOS Y CONDICIONES DE USO DE LA APLICACIÓN IURISMATCH
 Última actualización: 17 de junio de 2025
 
-Estos Términos y Condiciones regulan el acceso y uso de la aplicación móvil y/o web denominada IurisMatch (en adelante, la "Aplicación"), administrada por el equipo IurisMatch, representado legalmente por Lorena Naranjo (en adelante, "la Administradora").
+Estos Términos y Condiciones regulan el acceso y uso de la aplicación móvil y/o web denominada IurisMatch (en adelante, la "Aplicación"), administrada por el equipo IurisMatch, (en adelante, "Administradora").
 
 El uso de la Aplicación implica la aceptación plena y sin reservas de los presentes Términos y Condiciones. Si no está de acuerdo con estos términos, debe abstenerse de utilizar la plataforma.
 
@@ -184,17 +153,34 @@ El usuario se compromete a:
 • No utilizar la Aplicación para fines ilegales, comerciales no autorizados o de suplantación de identidad.
 
 6. LIMITACIÓN DE RESPONSABILIDAD
-IurisMatch y su representante Lorena Naranjo no se hacen responsables por:
+IurisMatch y su representante no se hacen responsables por:
 
 • La veracidad, legalidad o exactitud de la información publicada por usuarios.
 • La calidad, duración o condiciones de pasantías, empleos o cursos ofrecidos.
 • Daños o perjuicios derivados del uso indebido o inadecuado de la Aplicación.
 • Incumplimientos entre usuarios, proveedores o terceros contactados a través de la plataforma.
 
-7. PROPIEDAD INTELECTUAL
+IurisMatch es una aplicación intermediaria entre usuarios, por lo que las interacciones dependen exclusivamente de estos. La administración procurará restringir y eliminar contenido inadecuado o inapropiado tras ser detectado.
+
+7. AUTORÍA DEL CONTENIDO Y AUSENCIA DE ASESORÍA LEGAL
+Los contenidos, opiniones, comentarios, documentos, materiales, artículos, consejos, orientaciones y cualquier información publicada, compartida o divulgada por los usuarios registrados en la Aplicación, sean estos abogados, estudiantes de derecho, pasantes, profesionales del derecho o cualquier otro tipo de usuario, son de exclusiva autoría y responsabilidad de quien los publica.
+
+IurisMatch declara expresamente que:
+
+a) No constituye asesoría legal: Ningún contenido generado por usuarios de la plataforma constituye asesoría legal formal, consulta jurídica profesional ni opinión legal vinculante. Los usuarios que requieran asesoría legal específica deberán consultar directamente con un abogado debidamente habilitado para ejercer la profesión.
+
+b) No representa a la Aplicación: Las opiniones, criterios, interpretaciones legales, comentarios o cualquier manifestación expresada por los usuarios no representan la posición oficial de IurisMatch, ni comprometen la responsabilidad de la Administradora, ni constituyen declaraciones institucionales de la plataforma.
+
+c) Exención de responsabilidad profesional: IurisMatch no asume responsabilidad alguna por las consecuencias, daños, perjuicios o efectos adversos que puedan derivarse del uso, aplicación o interpretación de los contenidos publicados por usuarios en la plataforma.
+
+d) Carácter informativo: Todo contenido disponible en la Aplicación tiene únicamente carácter informativo, educativo y de intercambio académico o profesional, sin constituir en modo alguno asesoramiento legal profesional.
+
+Los usuarios que publiquen contenido legal se comprometen a incluir las advertencias pertinentes sobre el carácter no vinculante de sus publicaciones y la necesidad de consulta profesional especializada para casos específicos. Todo contacto profesional es externo y responsabilidad exclusiva de las partes.
+
+8. PROPIEDAD INTELECTUAL
 Todos los contenidos, diseños, logotipos, códigos y elementos visuales de la Aplicación son propiedad de IurisMatch y están protegidos por las leyes de propiedad intelectual de Ecuador. Está prohibida su reproducción, modificación o uso no autorizado.
 
-8. PROTECCIÓN DE DATOS PERSONALES
+9. PROTECCIÓN DE DATOS PERSONALES
 IurisMatch recolecta y trata datos personales conforme a lo establecido en la Ley Orgánica de Protección de Datos Personales del Ecuador.
 
 Finalidades del tratamiento:
@@ -207,10 +193,10 @@ El usuario podrá ejercer sus derechos de acceso, rectificación, eliminación, 
 
 Los datos no serán compartidos con terceros sin consentimiento expreso, salvo obligación legal.
 
-9. MODIFICACIONES
+10. MODIFICACIONES
 IurisMatch se reserva el derecho de modificar estos Términos y Condiciones en cualquier momento. Los cambios se notificarán a través de la misma Aplicación o por correo electrónico. El uso continuado implica aceptación de las modificaciones.
 
-10. SOLUCIÓN DE CONTROVERSIAS
+11. SOLUCIÓN DE CONTROVERSIAS
 En caso de controversias relacionadas con el uso de la Aplicación, las partes acuerdan:
 
 • Buscar una solución amistosa mediante mediación administrada por un centro debidamente acreditado.
@@ -220,16 +206,14 @@ El tribunal arbitral estará compuesto por tres árbitros: uno designado por la 
 
 El laudo arbitral será definitivo, obligatorio e inapelable.
 
-11. LEY APLICABLE Y JURISDICCIÓN
+12. LEY APLICABLE Y JURISDICCIÓN
 Estos Términos se rigen por las leyes de la República del Ecuador. En todo lo no previsto, se aplicarán las disposiciones del Código Civil, Código de Comercio, Ley de Protección de Datos Personales, Ley de Arbitraje y Mediación, y demás normas aplicables.
 
-12. CONTACTO
+13. CONTACTO
 Para consultas, sugerencias o ejercicio de derechos en materia de protección de datos, puede contactarse a:
 
 IurisMatch
-Representante: Lorena Naranjo
-iurismatch@gmail.com
-📞 0960401900''';
+📧 iurismatch@gmail.com''';
   }
 
   @override
@@ -424,6 +408,94 @@ iurismatch@gmail.com
                       ],
                     ),
                   ),
+                  
+                  // Campo de ciudad solo para abogados
+                  if (_selectedUserType == UserType.lawyer) ...[
+                    SizedBox(height: 16.0),
+                    
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[400]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.location_city, color: Theme.of(context).primaryColor, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Ciudad donde ejerce',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Selecciona la ciudad principal donde ofreces tus servicios legales.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          
+                          DropdownButtonFormField<String>(
+                            value: _selectedCity,
+                            decoration: InputDecoration(
+                              labelText: 'Seleccionar ciudad',
+                              prefixIcon: Icon(Icons.location_on),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            items: _allCities.map((String city) {
+                              return DropdownMenuItem<String>(
+                                value: city,
+                                child: Text(
+                                  city,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (String? newValue) {
+                              setState(() {
+                                _selectedCity = newValue ?? 'Quito';
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Por favor selecciona una ciudad';
+                              }
+                              return null;
+                            },
+                            isExpanded: true,
+                            // Mostrar provincia entre paréntesis
+                            selectedItemBuilder: (BuildContext context) {
+                              return _allCities.map<Widget>((String city) {
+                                String? province = EcuadorCities.getProvinceOfCity(city);
+                                return Container(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    province != null ? '$city ($province)' : city,
+                                    style: TextStyle(fontSize: 16),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  
                   SizedBox(height: 24.0),
                   
                   // Sección de Términos y Condiciones
